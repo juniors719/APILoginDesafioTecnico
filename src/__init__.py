@@ -3,12 +3,13 @@ from os import getenv
 from dotenv import load_dotenv
 from flask import Flask
 from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
 from flask_restx import Api
-from flask_sqlalchemy import SQLAlchemy
+from .utils.database import init_db, db
 
-db = SQLAlchemy()
 jwt = JWTManager()
 api = Api()
+migrate = Migrate()
 
 
 def create_app():
@@ -21,9 +22,11 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = getenv('JWT_SECRET_KEY')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = getenv('JWT_ACCESS_TOKEN_EXPIRES')
 
-    db.init_app(app)
     jwt.init_app(app)
     api.init_app(app)
+    db.init_app(app)
+    with app.app_context():
+        init_db()
 
     @app.route('/hello')
     def index():
