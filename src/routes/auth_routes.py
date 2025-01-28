@@ -7,7 +7,7 @@ from src.models import User, TokenBlocklist
 
 auth_ns = Namespace('auth', description='Operações de autenticação')
 
-user_model = auth_ns.model('User', {
+signup_model = auth_ns.model('SignUpModel', {
     'name': fields.String(required=True, description='Nome do usuário'),
     'email': fields.String(required=True, description='Email do usuário'),
     'password': fields.String(required=True, description='Senha do usuário')
@@ -26,7 +26,7 @@ access_token_model = auth_ns.model('AccessToken', {
 @auth_ns.route('/register')
 class Register(Resource):
     @auth_ns.doc('register_user')
-    @auth_ns.expect(user_model, validate=True)
+    @auth_ns.expect(signup_model, validate=True)
     @auth_ns.response(201, 'User registered successfully')
     @auth_ns.response(400, 'Missing required fields')
     @auth_ns.response(409, 'Email already registered')
