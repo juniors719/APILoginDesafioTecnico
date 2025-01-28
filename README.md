@@ -81,6 +81,21 @@ Abaixo está uma breve descrição dos principais endpoints da API.
 - `DELETE /users/{user_id}`
   Deleta um usuário pelo ID.
 
+## Testes
+
+Esta API inclui uma suíte de testes automatizados para garantir a confiabilidade das funcionalidades implementadas. Para rodar os testes, siga os passos abaixo:
+
+1. Certifique-se de que a variável de ambiente FLASK_ENV esteja configurada para o modo de teste:
+```bash
+FLASK_ENV=testing
+```
+Adicione essa configuração ao arquivo .env, se necessário.
+
+2. Execute os testes com o seguinte comando:
+```bash
+pytest --cov=app tests/ -v
+```
+
 ## Documentação Swagger
 
 A documentação interativa da API está disponível através do Swagger em: `http://localhost:5000/swagger`
@@ -90,4 +105,5 @@ Aqui, você pode explorar todos os endpoints da API, enviar requisições e visu
 
 Esta API usa autenticação via JWT (JSON Web Token). Todos os endpoints que exigem autenticação necessitam de um token
 válido no cabeçalho Authorization no formato Bearer <token>.
+
 
