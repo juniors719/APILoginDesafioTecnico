@@ -1,4 +1,37 @@
 from src.models import User, TokenBlocklist
+from datetime import timedelta
+from os import getenv
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Config:
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    JWT_SECRET_KEY = getenv('JWT_SECRET_KEY', 'default-secret-key')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+
+class DevelopmentConfig(Config):
+    SQLALCHEMY_DATABASE_URI = getenv('DATABASE_URL', 'sqlite:///dev.db')
+    DEBUG = True
+
+class TestingConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"  # Banco de dados em memória
+
+
+class ProductionConfig(Config):
+    SQLALCHEMY_DATABASE_URI = getenv('DATABASE_URL')
+    DEBUG = False
+    TESTING = False
+
+def get_config(env):
+    if env == 'development':
+        return DevelopmentConfig
+    elif env == 'testing':
+        return TestingConfig
+    elif env == 'production':
+        return ProductionConfig
+    raise ValueError(f"Invalid environment: {env}")
 
 
 def configure_jwt(jwt, db):

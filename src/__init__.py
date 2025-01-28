@@ -9,7 +9,7 @@ from flask_restx import Api
 
 from src.routes.auth_routes import auth_ns
 from src.routes.user_routes import users_ns
-from .config import configure_jwt
+from .config import configure_jwt, get_config
 from .utils.database import init_db, db
 
 jwt = JWTManager()
@@ -18,7 +18,7 @@ authorizations = {
         "type": "apiKey",
         "in": "header",
         "name": "Authorization",
-        "description": "Adicione um acesso JWT neste modelo:    Bearer &lt;JWT&gt;"
+        "description": "Adicione um acesso JWT neste modelo: Bearer &lt;JWT&gt;"
     }
 }
 
@@ -29,6 +29,7 @@ api = Api(
     authorizations=authorizations,
     security="Bearer Auth",
     contact="https://github.com/juniors719",
+    doc="/swagger",
 )
 migrate = Migrate()
 
@@ -37,17 +38,25 @@ def create_app():
     load_dotenv()
 
     app = Flask("apilogin.app")
+    env = getenv('FLASK_ENV', 'development')
+    print(f"Running in {env} environment")
+    app.config.from_object(get_config(env))
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = getenv('DATABASE_URL')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = getenv('JWT_SECRET_KEY')
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+    if app.config["TESTING"]:
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        print("Using SQLite in-memory database for testing")
+
 
     jwt.init_app(app)
     configure_jwt(jwt, db)
     db.init_app(app)
-    with app.app_context():
-        init_db()
+
+    if env != 'testing':
+        with app.app_context():
+            init_db()
+    else:
+        with app.app_context():
+            db.create_all()
 
     api.init_app(app)
 

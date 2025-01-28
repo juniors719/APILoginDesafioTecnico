@@ -69,7 +69,7 @@ class UserDetail(Resource):
         """
         Retorna detalhes de um usuário específico.
         """
-        user = User.query.get(user_id)
+        user = User.query.get(str(user_id))
         if not user:
             return {"error": "Usuário não encontrado"}, 404
         return user.to_dict(), 200
@@ -84,7 +84,7 @@ class UserDetail(Resource):
         """
         Atualiza as informações de um usuário, como torná-lo administrador.
         """
-        user = User.query.get(user_id)
+        user = User.query.get(str(user_id))
         if not user:
             return {"error": "Usuário não encontrado"}, 404
 
@@ -99,15 +99,15 @@ class UserDetail(Resource):
 
     @users_ns.doc('delete_user', security='Bearer Auth')
     @jwt_required()
-    @users_ns.response(200, 'Usuário deletado com sucesso')
+    @users_ns.response(204, 'Usuário deletado com sucesso')
     @users_ns.response(404, 'Usuário não encontrado')
     def delete(self, user_id):
         """
         Deleta um usuário pelo ID.
         """
-        user = User.query.get(user_id)
+        user = User.query.get(str(user_id))
         if not user:
             return {"error": "Usuário não encontrado"}, 404
 
         user.delete()
-        return {"message": "Usuário deletado com sucesso"}, 200
+        return {"message": "Usuário deletado com sucesso"}, 204
