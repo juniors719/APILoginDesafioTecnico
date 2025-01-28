@@ -1,9 +1,9 @@
 from flask import request
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, current_user, \
+    get_jwt
 from flask_restx import Namespace, Resource, fields
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 
 from src.models import User, TokenBlocklist
-from src.utils.database import db
 
 auth_ns = Namespace('auth', description='Operações de autenticação')
 
@@ -18,6 +18,11 @@ login_model = auth_ns.model('Login', {
     'password': fields.String(required=True, description='Senha do usuário')
 })
 
+access_token_model = auth_ns.model('AccessToken', {
+    'access_token': fields.String(required=True, description='Token de acesso JWT')
+})
+
+
 @auth_ns.route('/register')
 class Register(Resource):
     @auth_ns.doc('register_user')
@@ -27,7 +32,7 @@ class Register(Resource):
     @auth_ns.response(409, 'Email already registered')
     def post(self):
         """
-        Endpoint para registrar um novo usuário
+        Registrar um novo usuário
         """
         data = request.get_json()
         user = User.get_by_email(email=data['email'])
@@ -43,14 +48,16 @@ class Register(Resource):
         new_user.save()
         return {"message": "User registered"}, 201
 
+
 @auth_ns.route('/login')
 class Login(Resource):
+    @auth_ns.doc('login_user')
     @auth_ns.expect(login_model, validate=True)
     @auth_ns.response(200, 'Login successfully')
     @auth_ns.response(401, 'Invalid credentials')
     def post(self):
         """
-        Endpoint para login de usuários, que retorna tokens de acesso e de atualização.
+        Login de usuários, que retorna tokens de acesso e de atualização.
         """
         data = request.get_json()
         user = User.get_by_email(email=data['email'])
@@ -67,9 +74,11 @@ class Login(Resource):
 
         return {"error": "Invalid credentials"}, 401
 
+
 @auth_ns.route('/whoami')
 class Whoami(Resource):
     @jwt_required()
+    @auth_ns.doc('whoami', security='Bearer Auth')
     @auth_ns.response(200, 'User details retrieved successfully')
     @auth_ns.response(401, 'Unauthorized, invalid or expired token')
     @auth_ns.response(404, 'User not found')
@@ -77,15 +86,39 @@ class Whoami(Resource):
         """
         Endpoint protegido que retorna os detalhes do usuário autenticado.
         """
-        user_id = get_jwt_identity()  # Recupera o ID do usuário a partir do token JWT
-        user = User.query.get(user_id)  # Busca o usuário no banco de dados com o ID
-
-        if not user:
-            return {"error": "User not found"}, 404
-
         return {
-            "id": str(user.id),
-            "name": user.name,
-            "email": user.email,
-            "created_at": user.created_at
-        }, 200
+            "name": current_user.name,
+            "email": current_user.email
+        }
+
+
+@auth_ns.route('/refresh')
+class Refresh(Resource):
+    @jwt_required()
+    @auth_ns.doc(security='BearerAuth')
+    @auth_ns.response(200, 'Refresh token retrieved successfully')
+    @auth_ns.response(401, 'Unauthorized, invalid or expired token')
+    def get(self):
+        """
+        Endpoint protegido que gera um novo token de acesso utilizando o refresh token
+        """
+        identity = get_jwt_identity()
+        new_access_token = create_access_token(identity=identity)
+        return {"access_token": new_access_token}, 200
+
+
+@auth_ns.route('/logout')
+class Logout(Resource):
+    @jwt_required()
+    @auth_ns.doc('logout_user', security='Bearer Auth')
+    @auth_ns.response(200, 'Logout successfully logged out')
+    def get(self):
+        """
+        Revogar o token de acesso
+        """
+        jwt = get_jwt()
+        jti = jwt['jti']
+        token_type = jwt['type']
+        token_blocklist = TokenBlocklist(jti=jti)
+        token_blocklist.save()
+        return {"message": f"{token_type} token revoked successfully"}, 200

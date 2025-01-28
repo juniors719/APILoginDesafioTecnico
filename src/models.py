@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -11,15 +10,27 @@ from .utils.database import db
 class User(db.Model):
     __tablename__ = 'users'
     __table_args__ = {'extend_existing': True}
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid4()))
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
 
     def __repr__(self):
         return f"<User {self.name} {self.email}>"
+
+    def to_dict(self):
+        """
+        Retorna um dicionário com os atributos do usuário.
+        """
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "email": self.email,
+            "is_admin": self.is_admin,
+            "created_at": self.created_at.isoformat()
+        }
 
     def set_password(self, password):
         """
@@ -66,7 +77,7 @@ class User(db.Model):
 class TokenBlocklist(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     jti = db.Column(db.String(), nullable=False)
-    created_at = db.Column(db.DateTime(), default=datetime.utcnow())
+    created_at = db.Column(db.DateTime(), default=datetime.now(timezone.utc))
 
     def __repr__(self):
         return f"<Token {self.jti}>"
